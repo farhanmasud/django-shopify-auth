@@ -1,43 +1,43 @@
-<script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-<script src="https://unpkg.com/@shopify/app-bridge-utils@3"></script>
+<script src="https://unpkg.com/@shopify/app-bridge@3.7.9"></script>
 <script type="text/javascript">
-    (function (window) {
-        function appBridgeRedirect(url) {
-            var AppBridge = window['app-bridge'];
-            var createApp = AppBridge.default;
-            var Redirect = AppBridge.actions.Redirect;
+	(function(window) {
+		function appBridgeInternalRedirect(path) {
+			var AppBridge = window['app-bridge'];
+			var createApp = AppBridge.default;
+			var Redirect = AppBridge.actions.Redirect;
+			
+			var app = createApp({
+				apiKey: '{{ SHOPIFY_APP_API_KEY }}',
+				host: '{{ host }}',
+			});
+			
+			var normalizedLink = document.createElement('a');
+			normalizedLink.href = path;
 
-            var app = createApp({
-                apiKey: '{{ SHOPIFY_APP_API_KEY }}',
-                host: '{{ host }}',
-            });
+			Redirect.create(app).dispatch(Redirect.Action.REMOTE, path);
+		}
 
-            var normalizedLink = document.createElement('a');
-            normalizedLink.href = url;
+		window.appBridgeInternalRedirect = appBridgeInternalRedirect;
+	})(window);  
+  
+	(function () {
+		function redirect() {
+			var targetUrl = '{{ redirect_uri|safe }}';
+			var appBridgeUtils = window['app-bridge'].utilities;
 
-            Redirect.create(app).dispatch(Redirect.Action.REMOTE, normalizedLink.href);
-        }
+			if (appBridgeUtils.isShopifyEmbedded()) {
+				window.targetUrl = targetUrl;
+				window.appBridgeInternalRedirect(targetUrl);
+			} else {
+					window.top.location.href = targetUrl;
+			}
+		}
 
-        window.appBridgeRedirect = appBridgeRedirect;
-    })(window);
+		document.addEventListener("DOMContentLoaded", redirect);
 
-    (function () {
-        function redirect() {
-            var appBridgeUtils = window['app-bridge-utils'];
-            var targetUrl = '{{ redirect_uri|safe }}';
-
-            if (appBridgeUtils.isShopifyEmbedded()) {
-                window.appBridgeRedirect(targetUrl);
-            } else {
-                window.top.location.href = targetUrl;
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", redirect);
-
-        // In the turbolinks context, neither DOMContentLoaded nor turbolinks:load
-        // consistently fires. This ensures that we at least attempt to fire in the
-        // turbolinks situation as well.
-        redirect();
-    })();
+		// In the turbolinks context, neither DOMContentLoaded nor turbolinks:load
+		// consistently fires. This ensures that we at least attempt to fire in the
+		// turbolinks situation as well.
+		redirect();
+	})();
 </script>
